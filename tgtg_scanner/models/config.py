@@ -47,8 +47,15 @@ class BaseConfig(ABC):
 
     def _ini_get(self, parser: configparser.ConfigParser, section: str, key: str, attr: str):
         value = parser.get(section, key, fallback=None)
+        print(f"DEBUG: _ini_get '{section}.{key}' = '{value}', attr = '{attr}'")
         if value is not None:
-            setattr(self, attr, self._decode(value))
+            print(f"DEBUG: _ini_get - Setze Attribut '{attr}' auf Wert '{value}'")
+            if attr.startswith("_"):
+                print(f"DEBUG: _ini_get - '{attr}' beginnt mit _, rufe Methode auf")
+                method = getattr(self, attr)
+                method(self._decode(value))
+            else:
+                setattr(self, attr, self._decode(value))
 
     def _ini_get_boolean(self, parser: configparser.ConfigParser, section: str, key: str, attr: str):
         try:
@@ -484,6 +491,15 @@ class TgtgConfig(BaseConfig):
         self._ini_get_int(parser, "TGTG", "AccessTokenLifetime", "access_token_lifetime")
         self._ini_get_int(parser, "TGTG", "MaxPollingTries", "max_polling_tries")
         self._ini_get_int(parser, "TGTG", "PollingWaitTime", "polling_wait_time")
+        
+        # Direkte Verarbeitung des Proxy-Wertes zum Testen
+        proxy_value = parser.get("TGTG", "Proxy", fallback=None)
+        print(f"DEBUG: TgtgConfig._read_ini - Direkter Proxy-Wert: '{proxy_value}'")
+        if proxy_value:
+            print(f"DEBUG: TgtgConfig._read_ini - Rufe _process_proxy direkt auf")
+            self._process_proxy(proxy_value)
+        
+        # Normale Methode
         self._ini_get(parser, "TGTG", "Proxy", "_process_proxy")
 
     def _read_env(self):
@@ -499,9 +515,12 @@ class TgtgConfig(BaseConfig):
 
     def _process_proxy(self, proxy_string: str) -> None:
         """Parse proxy string in format ip:port:user:pass"""
+        print(f"DEBUG: _process_proxy aufgerufen mit: '{proxy_string}'")
         if not proxy_string:
+            print("DEBUG: proxy_string ist leer oder None")
             return
         parts = proxy_string.split(":")
+        print(f"DEBUG: Proxy parts: {parts}")
         if len(parts) >= 4:
             ip, port, user, password = parts[0], parts[1], parts[2], parts[3]
             proxy_url = f"http://{user}:{password}@{ip}:{port}"
@@ -509,6 +528,7 @@ class TgtgConfig(BaseConfig):
                 "http": proxy_url,
                 "https": proxy_url
             }
+            print(f"DEBUG: Proxy konfiguriert: {self.proxies}")
             log.info("Proxy configuration set")
         else:
             log.warning("Invalid proxy format. Expected: ip:port:user:pass")
@@ -594,7 +614,7 @@ class Config(BaseConfig):
             self.webhook._read_ini(parser)
             self.script._read_ini(parser)
             self.discord._read_ini(parser)
-            self._ini_get_dict(parser, "PROXIES", "proxies")
+            self._ini_get_dict(parser, "PROXIES", "proxies", "proxies")
             
             log.info("Loaded config from %s", config_file.absolute())
         else:

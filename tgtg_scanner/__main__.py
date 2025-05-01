@@ -163,6 +163,11 @@ def main():
 
         if args.proxy is not None:
             config.tgtg._process_proxy(args.proxy)
+        else:
+            print(f"DEBUG: config.tgtg.proxies Inhalt: {config.tgtg.proxies}")
+            print(f"DEBUG: config.tgtg.proxies Typ: {type(config.tgtg.proxies)}")
+            print(f"DEBUG: config.tgtg.proxies ist leer? {not config.tgtg.proxies}")
+            print(f"Proxy aus Konfigurationsdatei wird verwendet: {config.tgtg.proxies}" if config.tgtg.proxies else "Kein Proxy wird verwendet")
 
         scanner = Scanner(config)
         if args.tokens:
