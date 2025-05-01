@@ -100,6 +100,7 @@ def main():
     json_group.add_argument("-j", "--json", action="store_true", help="output as plain json")
     json_group.add_argument("-J", "--json_pretty", action="store_true", help="output as pretty json")
     parser.add_argument("--base_url", default=None, help="Overwrite TGTG API URL for testing")
+    parser.add_argument("--proxy", default=None, help="Use proxy in format ip:port:user:pass")
     args = parser.parse_args()
 
     # Disable logging for json output
@@ -159,6 +160,9 @@ def main():
 
         if args.base_url is not None:
             config.tgtg.base_url = args.base_url
+
+        if args.proxy is not None:
+            config.tgtg._process_proxy(args.proxy)
 
         scanner = Scanner(config)
         if args.tokens:

@@ -473,6 +473,7 @@ class TgtgConfig(BaseConfig):
     max_polling_tries: int = 24
     polling_wait_time: int = 5
     base_url: str = BASE_URL
+    proxies: dict = field(default_factory=dict)
 
     def _read_ini(self, parser: configparser.ConfigParser):
         self._ini_get(parser, "TGTG", "Username", "username")
@@ -483,6 +484,7 @@ class TgtgConfig(BaseConfig):
         self._ini_get_int(parser, "TGTG", "AccessTokenLifetime", "access_token_lifetime")
         self._ini_get_int(parser, "TGTG", "MaxPollingTries", "max_polling_tries")
         self._ini_get_int(parser, "TGTG", "PollingWaitTime", "polling_wait_time")
+        self._ini_get(parser, "TGTG", "Proxy", "_process_proxy")
 
     def _read_env(self):
         self._env_get("TGTG_USERNAME", "username")
@@ -493,6 +495,23 @@ class TgtgConfig(BaseConfig):
         self._env_get_int("TGTG_ACCESS_TOKEN_LIFETIME", "access_token_lifetime")
         self._env_get_int("TGTG_MAX_POLLING_TRIES", "max_polling_tries")
         self._env_get_int("TGTG_POLLING_WAIT_TIME", "polling_wait_time")
+        self._env_get("TGTG_PROXY", "_process_proxy")
+
+    def _process_proxy(self, proxy_string: str) -> None:
+        """Parse proxy string in format ip:port:user:pass"""
+        if not proxy_string:
+            return
+        parts = proxy_string.split(":")
+        if len(parts) >= 4:
+            ip, port, user, password = parts[0], parts[1], parts[2], parts[3]
+            proxy_url = f"http://{user}:{password}@{ip}:{port}"
+            self.proxies = {
+                "http": proxy_url,
+                "https": proxy_url
+            }
+            log.info("Proxy configuration set")
+        else:
+            log.warning("Invalid proxy format. Expected: ip:port:user:pass")
 
 
 @dataclass
@@ -552,6 +571,7 @@ class Config(BaseConfig):
     webhook: WebhookConfig = field(default_factory=WebhookConfig)
     script: ScriptConfig = field(default_factory=ScriptConfig)
     discord: DiscordConfig = field(default_factory=DiscordConfig)
+    proxies: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if self.file:
@@ -574,7 +594,8 @@ class Config(BaseConfig):
             self.webhook._read_ini(parser)
             self.script._read_ini(parser)
             self.discord._read_ini(parser)
-
+            self._ini_get_dict(parser, "PROXIES", "proxies")
+            
             log.info("Loaded config from %s", config_file.absolute())
         else:
             self._read_env()

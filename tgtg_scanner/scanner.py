@@ -64,6 +64,7 @@ class Scanner:
             refresh_token=self.config.tgtg.refresh_token,
             datadome_cookie=self.config.tgtg.datadome,
             base_url=self.config.tgtg.base_url,
+            proxies=self.config.tgtg.proxies,
         )
         self.reservations = Reservations(self.tgtg_client)
         self.favorites = Favorites(self.tgtg_client)
